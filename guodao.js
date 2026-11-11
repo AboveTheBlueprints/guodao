@@ -1,6 +1,6 @@
 // 过道（第二个，第 17 天）：过道.py 的规矩搬过来，一字一句对齐；node 里拿来跟 python 逐串对。
 (function (root) {
-  const WEEKS = 8, YOU = 3, START_STOCK = 3, RANGE = 2, HUB = 2, YOU_N = 2;
+  const WEEKS = 8, YOU = 3, START_STOCK = 3, RANGE = 2, HUB = 2, YOU_N = 3;
   const NAME = {1: "老周", 2: "王婶", 3: "你", 4: "孙家", 5: "刘家", 6: "小赵"};
   const FACE = {1: "老周（一个人过，老伴前年走了）", 2: "王婶（六个孩子，男人在外地）", 3: "你",
     4: "孙家（孙师傅在锅炉房，媳妇糊纸盒）", 5: "刘家（小两口，媳妇快生了）", 6: "小赵（厂里刚放了长假，一个人）"};
@@ -18,6 +18,9 @@
   const STUFF = {"冷": "一筐煤", "粮": "半袋面", "活": "攒下的几十块钱", "病": "一包红糖和几个鸡蛋", "生": "一包红糖和几个鸡蛋", "": "半袋面"};
   const SIGN_D = {"4粮": "孙家媳妇这两天糊纸盒糊到半夜", "5粮": "刘家小两口这两天晚饭桌上就一碟咸菜", "6粮": "小赵这两天老在水房接凉水喝"};
   const NOW_D = {"6粮": "小赵兜里就剩两毛钱"}, FALL_D = {"6粮": "小赵那礼拜一天就吃一个馒头"};
+  const PRE_OK = {"病": "{n}这礼拜没躺下，上礼拜那碗姜汤顶住了。", "生": "刘家媳妇生了，小被子是现成的，孩子一落地就裹上了。",
+    "冷": "{n}屋里的炉子没断，上礼拜那筐煤顶上了。", "粮": "{h}面缸没见底，上礼拜那半袋面顶上了。", "活": "小赵的房钱交上了，上礼拜那几十块钱顶上了。"};
+  const LENT_OK = {"冷": "那礼拜屋里没断煤", "粮": "那礼拜锅里有面", "活": "那礼拜房钱交上了", "病": "那礼拜药拿上了", "生": "那礼拜住上了院"};
   const YOU_SIGN = {"冷": "收音机说下礼拜寒潮，你家煤也不多了", "病": "你这两天嗓子发紧，浑身发沉"};
   const YOU_NOW = {"冷": "寒潮来了，你屋里冷得握不住笔", "病": "你病了，起不来"};
   const DOORS = [1, 2, 3, 4, 5, 6];
@@ -79,7 +82,7 @@
       for (const d of Object.keys(pre).map(Number)) {
         if (pre[d] === w && alive[d] && has(d, w)) {
           met[d] = "你";
-          lines.push(need[K(d, w)] === "病" ? `${NAME[d]}这礼拜没躺下，上礼拜那碗姜汤顶住了。` : "刘家媳妇生了，小被子是现成的，孩子一落地就裹上了。");
+          lines.push(fmt(PRE_OK[need[K(d, w)]], d));
           delete pre[d];
         }
       }
@@ -113,7 +116,11 @@
             lines.push(`你借了${NAME[t]}二十块钱，让他` + {"冷": "去买煤", "粮": "去买面", "活": "先把房钱交上", "病": "去拿药", "生": "去交住院的押金"}[k] + "，说好礼拜天发了补助就还你。");
           } else {
             if (k && !(t in met)) met[t] = "你";
-            lines.push(`你拿了${STUFF[k || ""]}去${hn(t)}，没说别的就回来了。` + (k ? "" : `${NAME[t]}这礼拜倒也没什么难处，愣了一下收下了。`));
+            const k2 = k ? undefined : need[K(t, w + 1)];
+            if ((k2 === "冷" || k2 === "粮" || k2 === "活") && !(t in pre)) {
+              pre[t] = w + 1;
+              lines.push(`你拿了${STUFF[k2]}去${hn(t)}。${NAME[t]}说这礼拜还够，你还是给搁下了。`);
+            } else lines.push(`你拿了${STUFF[k || ""]}去${hn(t)}，没说别的就回来了。` + (k ? "" : `${NAME[t]}这礼拜倒也没什么难处，愣了一下收下了。`));
             tokens.push(newTok(t, w, YOU)); got[t]++; gotfrom[t].push([w, YOU]);
           }
         }
@@ -173,18 +180,18 @@
       log.push({w, lines, act: a});
       if (over) break;
     }
-    return {log, st: {need, alive, fall, debt, hearty, tokens, stock, sick, over, door, gotfrom, lent, fell}};
+    return {log, st: {need, alive, fall, debt, hearty, tokens, stock, sick, over, door, gotfrom, lent, fell, pre: Object.assign({}, pre)}};
   }
 
   // 这礼拜的样子：每个门上画什么、底下几句话
   function weekView(w, st) {
     const need = st.need, doors = [], said = [];
     for (const d of DOORS) {
-      const m = {d, name: NAME[d], gone: !st.alive[d], now: need[K(d, w)], next: need[K(d, w + 1)],
+      const m = {d, name: NAME[d], gone: !st.alive[d], now: st.pre[d] === w ? undefined : need[K(d, w)], next: need[K(d, w + 1)],
         warm: st.tokens.filter(t => t.at === d && !t.cold && !t.home && d !== YOU).length, heart: st.hearty[d], owe: st.debt[d]};
       doors.push(m);
     }
-    for (const d of DOORS) if (st.alive[d] && need[K(d, w)]) { const k = need[K(d, w)]; said.push(d === YOU ? YOU_NOW[k] : fmt(NOW_D[d + k] || NOW[k], d)); }
+    for (const d of DOORS) if (st.alive[d] && need[K(d, w)]) { const k = need[K(d, w)]; said.push(d === YOU ? YOU_NOW[k] : st.pre[d] === w ? fmt(PRE_OK[k], d).replace(/。$/, "") : fmt(NOW_D[d + k] || NOW[k], d)); }
     for (const d of DOORS) if (st.alive[d] && need[K(d, w + 1)]) { const k = need[K(d, w + 1)]; said.push(d === YOU ? YOU_SIGN[k] : fmt(SIGN_D[d + k] || SIGN[k], d)); }
     const down = st.sick || need[K(YOU, w)] === "病";
     return {doors, said, stock: st.stock, down};
@@ -200,7 +207,7 @@
     }
     out.push("你：" + (st.over ? "回了老家。" : "还在。") + `家里还剩 ${st.stock} 回。`);
     const doorLines = st.door.map(([w, h, tk]) => `第${w}礼拜，${NAME[h]}。` + (tk ? "" : "没人叫，自己来的。"));
-    const lentLine = st.lent.length ? "借出去的：" + st.lent.map(([w, t]) => `第${w}礼拜借给${NAME[t]}`).join("、") + "（都只管那一礼拜，过后还回来了，没往下传）。" : "";
+    const lentLine = st.lent.length ? "借出去的：" + st.lent.map(([w, t]) => `第${w}礼拜借给${NAME[t]}，${LENT_OK[st.need[K(t, w)]]}`).join("；") + "。礼拜天都还回来了，没往下传。" : "";
     const paths = st.tokens.map(tk => {
       const p = tk.path, s = tk.src === YOU ? "你" : NAME[tk.src];
       let seg = `第${p[0][0]}礼拜 ${s}→${NAME[p[0][2]]}`;
