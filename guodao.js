@@ -129,7 +129,7 @@
         if (tk.cold || tk.home || tk.since >= w) continue;
         const h = tk.at;
         if (!alive[h]) { tk.cold = [w, "走了"]; continue; }
-        if (busy(h)) { tk.idle++; if (tk.idle >= 2) tk.cold = [w, "欠着"]; continue; }
+        if (busy(h)) { tk.idle++; if (tk.idle >= 2) tk.cold = [w, debt[h] ? "欠着" : "自顾"]; continue; }
         const d = needyNear(h);
         if (d === null) { tk.idle++; if (tk.idle >= 2) tk.cold = [w, "凉"]; continue; }
         met[d] = h; tk.path.push([w, h, d]); tk.at = d; tk.since = w; tk.idle = 0;
@@ -206,7 +206,7 @@
       let seg = `第${p[0][0]}礼拜 ${s}→${NAME[p[0][2]]}`;
       for (const [w, a, b] of p.slice(1)) seg += ` →第${w}礼拜 ${NAME[b]}`;
       if (tk.home) seg += tk.src === YOU ? "（回到了你家门口）" : "（到了你家门口）";
-      else if (tk.cold) seg += `（停在${NAME[tk.at]}，` + {"凉": "身边没人有难处，凉了", "欠着": "那家手里压着借你的东西，揣着没往下给", "走了": "那家搬走了"}[tk.cold[1]] + "）";
+      else if (tk.cold) seg += `（停在${NAME[tk.at]}，` + {"凉": "身边没人有难处，凉了", "欠着": "那家手里压着借你的东西，揣着没往下给", "自顾": "那家自己也正难着，揣着没往下给", "走了": "那家搬走了"}[tk.cold[1]] + "）";
       else seg += `（开春还在${NAME[tk.at]}手里）`;
       return {seg, path: p, home: !!tk.home, src: tk.src};
     });
