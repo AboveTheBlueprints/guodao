@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>过道 · 车</title>
+<style>
+  body { background: #1d1c1a; color: #e8e2d6; font: 16px/1.7 "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; margin: 0; }
+  #wrap { max-width: 980px; margin: 0 auto; padding: 18px 16px 60px; }
+  h1 { font-size: 22px; margin: 6px 0 4px; letter-spacing: 2px; }
+  .dim { color: #9a9284; }
+  #intro p { margin: 4px 0; }
+  #hall { display: flex; gap: 8px; margin: 18px 0 10px; }
+  .door { flex: 1; min-height: 150px; background: #2a2825; border: 2px solid #4a463f; border-radius: 6px; padding: 8px 6px; position: relative; text-align: center; }
+  .door.me { background: #33302a; border-color: #8a7f68; }
+  .door.gone { opacity: .35; }
+  .door .num { font-size: 12px; color: #9a9284; }
+  .door .nm { font-size: 17px; margin: 2px 0 6px; }
+  .door .marks { min-height: 28px; font-size: 18px; letter-spacing: 2px; }
+  .m-now { color: #ff6b5b; font-weight: bold; }
+  .m-next { color: #c9a36a; }
+  .m-warm { color: #ffb347; text-shadow: 0 0 6px #ff9a2a; }
+  .m-heart { color: #ff8fa0; }
+  .m-owe { color: #8fb7d9; font-size: 13px; }
+  .m-car { color: #d9b38f; font-size: 13px; margin-left: 2px; }
+  .door .acts { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+  button { background: #3d3a34; color: #e8e2d6; border: 1px solid #6a6458; border-radius: 4px; padding: 3px 0; font: inherit; font-size: 14px; cursor: pointer; }
+  button:hover { background: #4d4940; }
+  button:disabled { opacity: .3; cursor: default; }
+  #rest { padding: 6px 22px; margin-top: 6px; }
+  #week h2 { font-size: 18px; margin: 14px 0 4px; }
+  #last { background: #262420; border-left: 3px solid #8a7f68; padding: 6px 12px; margin: 10px 0; }
+  #last p, #said p { margin: 3px 0; }
+  .knock { color: #ffcf8a; }
+  #legend { font-size: 13px; color: #9a9284; margin: 4px 0 8px; }
+  #stock span { display: inline-block; width: 14px; height: 14px; background: #c9a36a; margin-right: 4px; border-radius: 2px; vertical-align: -2px; }
+  #stock span.empty { background: transparent; border: 1px dashed #6a6458; }
+  #end { display: none; }
+  #end h2 { font-size: 20px; margin: 18px 0 6px; }
+  #end p { margin: 3px 0; }
+  .path { margin: 4px 0; }
+  .path.home { color: #ffcf8a; }
+  #foot { margin-top: 28px; font-size: 13px; }
+  a { color: #c9a36a; }
+  @media (max-width: 640px) { #hall { gap: 4px; } .door { padding: 6px 2px; } .door .nm { font-size: 14px; } button { font-size: 12px; } }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <h1>过道 · 车</h1>
+  <div id="intro">
+    <p>一栋筒子楼的二楼，一条过道，六个门。今年冬天厂里放了长假，暖气没烧起来。你住 3 号门。</p>
+    <p class="dim">一个冬天八个礼拜，你一礼拜能帮一家。</p>
+    <p class="dim">给：拿你家的煤和面过去，东西就是他的了。借：借他二十块钱，礼拜天发了补助就还你，你还能再借。搭：空着手过去搭把手，不花家底，可只帮得上用人手的事（病了要人守、生孩子要人跑腿）。</p>
+    <p class="dim">许：你楼下有辆三轮车。跟一家说开春把车给他，不花家底，也不占这礼拜。只有一辆。</p>
+    <p class="dim">你自己有难处的那礼拜，要是没人来，就得动用家底。</p>
+  </div>
+  <div id="hall"></div>
+  <div id="legend">! 这礼拜有难处　? 下礼拜要有　<span class="m-warm">●</span> 揣着一股热乎　<span class="m-heart">♥</span> 热心肠　<span class="m-owe">欠</span> 欠你钱　<span class="m-car">车</span> 等着你那辆三轮车　门变灰：搬走了</div>
+  <div id="week">
+    <div id="last"></div>
+    <h2 id="wt"></h2>
+    <div id="said"></div>
+    <p id="stock"></p>
+    <button id="rest">这礼拜歇着</button>
+  </div>
+  <div id="end">
+    <h2>开春了</h2>
+    <div id="homes"></div>
+    <h2 style="font-size:17px">这个冬天敲过你家门的</h2>
+    <div id="knocks"></div>
+    <div id="lent"></div>
+    <div id="prom"></div>
+    <h2 style="font-size:17px">每一股热乎走过的路</h2>
+    <div id="paths"></div>
+  </div>
+  <p id="foot" class="dim">这一局的种子 <span id="seed"></span>　<a href="#" id="again">换一个冬天</a>　<a href="#" id="same">这个冬天重来</a></p>
+</div>
+<script src="che.js"></script>
+<script>
+(function () {
+  const q = new URLSearchParams(location.search);
+  let seed = parseInt(q.get("s") || "", 10);
+  if (!(seed > 0)) seed = 1 + Math.floor(Math.random() * 99999);
+  let acts = [], promise = null;
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;"}[c]));
+
+  function draw() {
+    const {log, st} = GD.simulate(seed, acts, promise);
+    const done = st.over || acts.length >= GD.WEEKS;
+    const w = acts.length + 1;
+    const v = GD.weekView(Math.min(w, GD.WEEKS), st);
+    // 门
+    const hall = $("hall"); hall.innerHTML = "";
+    for (const m of v.doors) {
+      const el = document.createElement("div");
+      el.className = "door" + (m.d === GD.YOU ? " me" : "") + (m.gone ? " gone" : "");
+      let marks = "";
+      if (!m.gone && !done) {
+        if (m.now) marks += '<span class="m-now">!</span>';
+        if (m.next) marks += '<span class="m-next">?</span>';
+      }
+      if (!m.gone) {
+        marks += '<span class="m-warm">' + "●".repeat(m.warm) + "</span>";
+        if (m.heart) marks += '<span class="m-heart">♥</span>';
+        if (m.owe) marks += '<span class="m-owe">欠</span>';
+        if (m.car) marks += '<span class="m-car">车</span>';
+      }
+      el.innerHTML = `<div class="num">${m.d} 号门</div><div class="nm">${esc(m.name)}</div><div class="marks">${marks}</div>`;
+      if (m.d !== GD.YOU && !done) {
+        const box = document.createElement("div"); box.className = "acts";
+        for (const [k, label] of [["给", "给"], ["借", "借"], ["搭", "搭把手"]]) {
+          const b = document.createElement("button"); b.textContent = label;
+          b.disabled = m.gone || v.down || ((k === "给" || k === "借") && v.stock <= 0);
+          b.onclick = () => { acts.push([k, m.d]); draw(); };
+          box.appendChild(b);
+        }
+        const pb = document.createElement("button"); pb.textContent = "许车";
+        pb.disabled = m.gone || !!promise;
+        pb.onclick = () => { promise = [w, m.d]; draw(); };
+        box.appendChild(pb);
+        el.appendChild(box);
+      }
+      hall.appendChild(el);
+    }
+    // 上礼拜
+    const lastRec = log[log.length - 1];
+    if (lastRec) {
+      const ls = lastRec.lines.length ? lastRec.lines : ["过道里这礼拜没什么动静。"];
+      $("last").style.display = "";
+      $("last").innerHTML = `<div class="dim">第 ${lastRec.w} 礼拜</div>` + ls.map(l => `<p class="${l.includes("你家的门") || l.includes("这回是你家") ? "knock" : ""}">${esc(l)}</p>`).join("") + (st.over ? `<p>${esc(st.over)}</p>` : "");
+    } else $("last").style.display = "none";
+    $("week").style.display = "";
+    if (done) {
+      $("wt").textContent = ""; $("said").innerHTML = ""; $("stock").innerHTML = ""; $("rest").style.display = "none";
+      const e = GD.ending(st);
+      $("end").style.display = "block";
+      $("homes").innerHTML = e.homes.map(x => `<p>${esc(x)}</p>`).join("");
+      $("knocks").innerHTML = e.doorLines.length ? e.doorLines.map(x => `<p class="knock">${esc(x)}</p>`).join("") : '<p class="dim">没人敲过你家的门。</p>';
+      $("lent").innerHTML = e.lentLine ? `<p style="margin-top:10px">${esc(e.lentLine)}</p>` : "";
+      $("prom").innerHTML = e.promLines.map((x, i) => `<p style="margin-top:${i ? 0 : 10}px${x.startsWith("  ") ? ";padding-left:1.5em" : ""}">${esc(x.trim())}</p>`).join("");
+      $("paths").innerHTML = e.paths.length ? e.paths.map(p => `<p class="path${p.home ? " home" : ""}">${esc(p.seg)}</p>`).join("") : '<p class="dim">这个冬天没有。</p>';
+      return;
+    }
+    $("end").style.display = "none";
+    $("wt").textContent = `第 ${w} 礼拜`;
+    $("said").innerHTML = (promise && promise[0] === w ? `<p class="knock">${esc(GD.promiseLine(promise[1]))}</p>` : "") + v.said.map(s => `<p>${esc(s)}。</p>`).join("") +
+      Object.keys(st.debt).filter(d => st.debt[d] && st.alive[d]).map(d => `<p class="dim">${GD.NAME[d]}还欠着你二十块钱，说好礼拜天还。</p>`).join("");
+    let sq = ""; for (let i = 0; i < Math.max(v.stock, GD.START_STOCK); i++) sq += `<span class="${i < v.stock ? "" : "empty"}"></span>`;
+    $("stock").innerHTML = `你家里的煤、面和钱，还够拿出去 ${v.stock} 回：${sq}` + (v.down ? "　<b>这礼拜你起不来，哪儿也去不了。</b>" : "");
+    $("rest").style.display = ""; $("rest").textContent = v.down ? "这礼拜躺着" : "这礼拜歇着";
+  }
+  $("rest").onclick = () => { acts.push(["歇", 0]); draw(); };
+  $("seed").textContent = seed;
+  $("again").onclick = ev => { ev.preventDefault(); location.search = "?s=" + (1 + Math.floor(Math.random() * 99999)); };
+  $("same").onclick = ev => { ev.preventDefault(); acts = []; promise = null; draw(); window.scrollTo(0, 0); };
+  draw();
+})();
+</script>
+</body>
+</html>
