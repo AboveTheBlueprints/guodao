@@ -24,6 +24,8 @@
   const YOU_SIGN = {"冷": "收音机说下礼拜寒潮，你家煤也不多了", "病": "你这两天嗓子发紧，浑身发沉"};
   const YOU_NOW = {"冷": "寒潮来了，你屋里冷得握不住笔", "病": "你病了，起不来"};
   const DOORS = [1, 2, 3, 4, 5, 6];
+  const PROUD = 4;  // 孙家不白受人的：给的、搭手的转头就还上，热乎停在他家；只有借，还钱那天他成热心肠
+  const PROUD_BACK = {"给": "礼拜天早上，你家门缝里塞着二十块钱，是孙家的。", "搭": "礼拜天孙家媳妇端了一碗饺子过来，说谢你那天搭的手。"};
 
   const hn = d => NAME[d].endsWith("家") ? NAME[d] : NAME[d] + "家";
   const fmt = (s, d) => s.replace(/\{n\}/g, NAME[d]).replace(/\{h\}/g, hn(d));
@@ -73,6 +75,8 @@
     const mk = v => { const o = {}; DOORS.forEach(d => o[d] = (typeof v === "function" ? v() : v)); return o; };
     const alive = mk(true), fall = mk(0), debt = mk(false), got = mk(0), gotfrom = mk(() => []), hearty = mk(false), fell = mk(() => []);
     const tokens = [], log = [], door = [], lent = [], pre = {};
+    let back = [];
+    const youTok = (t, w, kind) => { const tk = newTok(t, w, YOU); if (t === PROUD) { tk.cold = [w, "不收"]; back.push(kind); } else got[t]++; tokens.push(tk); gotfrom[t].push([w, YOU]); };
     let stock = START_STOCK, sick = false, over = null;
     const newTok = (at, w, src) => ({at, since: w, idle: 0, path: [[w, src, at]], cold: null, src, home: null});
     for (let w = 1; w <= WEEKS; w++) {
@@ -93,14 +97,14 @@
         else if (HANDS.includes(k)) {
           met[t] = "你";
           lines.push(`你空着手去了${hn(t)}，` + (k === "病" ? "端水、熬粥、守了半宿。" : "烧水、看着门、跑腿叫人，一直待到孩子哭出声。"));
-          tokens.push(newTok(t, w, YOU)); got[t]++; gotfrom[t].push([w, YOU]);
+          youTok(t, w, "搭");
         } else if (k) {
           lines.push(`你空着手去了${hn(t)}，坐了一会儿，帮着收拾收拾。可他们缺的是` + {"冷": "煤", "粮": "吃的", "活": "钱"}[k] + "，你两只手变不出来。");
         } else if (HANDS.includes(need[K(t, w + 1)])) {
           const k2 = need[K(t, w + 1)];
           pre[t] = w + 1;
           lines.push(`你去${hn(t)}坐了一会儿，` + (k2 === "病" ? "看他咳得厉害，逼着他喝了一大碗姜汤，盯着他睡下。" : "帮着把小被子絮好了，又问清了医院怎么走。"));
-          tokens.push(newTok(t, w, YOU)); got[t]++; gotfrom[t].push([w, YOU]);
+          youTok(t, w, "搭");
         } else lines.push(`你去${hn(t)}坐了一会儿，说了说闲话。`);
       } else if (a[0] === "给" || a[0] === "借") {
         const t = a[1];
@@ -121,7 +125,7 @@
               pre[t] = w + 1;
               lines.push(`你拿了${STUFF[k2]}去${hn(t)}。${NAME[t]}说这礼拜还够，你还是给搁下了。`);
             } else lines.push(`你拿了${STUFF[k || ""]}去${hn(t)}，没说别的就回来了。` + (k ? "" : `${NAME[t]}这礼拜倒也没什么难处，愣了一下收下了。`));
-            tokens.push(newTok(t, w, YOU)); got[t]++; gotfrom[t].push([w, YOU]);
+            youTok(t, w, "给");
           }
         }
       } else if (down) lines.push("你起不来。");
@@ -141,7 +145,7 @@
         if (d === null) { tk.idle++; if (tk.idle >= 2) tk.cold = [w, "凉"]; continue; }
         met[d] = h; tk.path.push([w, h, d]); tk.at = d; tk.since = w; tk.idle = 0;
         if (d === YOU) { tk.home = w; door.push([w, h, tk]); lines.push(`${NAME[h]}${how(h, need[K(d, w)])}，敲的是你家的门。`); }
-        else { got[d]++; gotfrom[d].push([w, h]); lines.push(`${NAME[h]}${how(h, need[K(d, w)])}，去的是${hn(d)}。`); }
+        else { if (d === PROUD) tk.cold = [w, "不收"]; else got[d]++; gotfrom[d].push([w, h]); lines.push(`${NAME[h]}${how(h, need[K(d, w)])}，去的是${hn(d)}。` + (d === PROUD ? "转天孙家就还上了。" : "")); }
       }
       for (const h of DOORS) {
         if (h === YOU || !alive[h] || !hearty[h] || busy(h)) continue;
@@ -149,7 +153,7 @@
         if (d === null) continue;
         met[d] = h;
         if (d === YOU) { door.push([w, h, null]); lines.push(`${NAME[h]}又${how(h, need[K(d, w)])}，这回是你家。没人叫。`); }
-        else { got[d]++; gotfrom[d].push([w, h]); tokens.push(newTok(d, w, h)); lines.push(`${NAME[h]}又${how(h, need[K(d, w)])}，去的是${hn(d)}。没人叫。`); }
+        else { if (d !== PROUD) got[d]++; gotfrom[d].push([w, h]); const nt = newTok(d, w, h); if (d === PROUD) nt.cold = [w, "不收"]; tokens.push(nt); lines.push(`${NAME[h]}又${how(h, need[K(d, w)])}，去的是${hn(d)}。没人叫。` + (d === PROUD ? "转天孙家就还上了。" : "")); }
       }
       if (has(YOU, w) && !(YOU in met) && stock > 0) { stock--; met[YOU] = "自己"; lines.push("你翻出家里剩的，自己扛过去了。"); }
       for (const d of DOORS) {
@@ -170,10 +174,12 @@
       for (const d of DOORS) {
         if (debt[d]) {
           debt[d] = false;
-          if (alive[d]) { stock++; lines.push(`礼拜天${NAME[d]}把那二十块钱还回来了。`); }
+          if (alive[d]) { stock++; if (d === PROUD && !hearty[d]) { hearty[d] = true; lines.push("礼拜天孙师傅把那二十块钱还回来了，站在门口说：“你家有事，言一声。”"); } else lines.push(`礼拜天${NAME[d]}把那二十块钱还回来了。`); }
           else lines.push(`借给${NAME[d]}的那二十块钱，跟着他家一起走了。`);
         }
       }
+      for (const b of back) if (alive[PROUD]) { if (b === "给") stock++; lines.push(PROUD_BACK[b]); }
+      back = [];
       for (const d of DOORS) {
         if (d !== YOU && alive[d] && got[d] >= HUB && !hearty[d]) { hearty[d] = true; lines.push(`${NAME[d]}在楼道里跟人说：“谁家有事，言一声。”`); }
       }
@@ -193,6 +199,7 @@
     }
     for (const d of DOORS) if (st.alive[d] && need[K(d, w)]) { const k = need[K(d, w)]; said.push(d === YOU ? YOU_NOW[k] : st.pre[d] === w ? fmt(PRE_OK[k], d).replace(/。$/, "") : fmt(NOW_D[d + k] || NOW[k], d)); }
     for (const d of DOORS) if (st.alive[d] && need[K(d, w + 1)]) { const k = need[K(d, w + 1)]; said.push(d === YOU ? YOU_SIGN[k] : fmt(SIGN_D[d + k] || SIGN[k], d)); }
+    if (w === 1) said.unshift("上礼拜王婶给孙家孩子塞了俩馒头，当天晚上孙家媳妇端了一碗饺子还过去了");
     const down = st.sick || need[K(YOU, w)] === "病";
     return {doors, said, stock: st.stock, down};
   }
@@ -207,13 +214,13 @@
     }
     out.push("你：" + (st.over ? "回了老家。" : "还在。") + `家里还剩 ${st.stock} 回。`);
     const doorLines = st.door.map(([w, h, tk]) => `第${w}礼拜，${NAME[h]}。` + (tk ? "" : "没人叫，自己来的。"));
-    const lentLine = st.lent.length ? "借出去的：" + st.lent.map(([w, t]) => `第${w}礼拜借给${NAME[t]}，${LENT_OK[st.need[K(t, w)]]}`).join("；") + "。礼拜天都还回来了，没往下传。" : "";
+    const lentLine = st.lent.length ? "借出去的：" + st.lent.map(([w, t]) => `第${w}礼拜借给${NAME[t]}，${LENT_OK[st.need[K(t, w)]]}`).join("；") + "。礼拜天都还回来了。" + (st.lent.some(([w, t]) => t !== PROUD) ? "别家借的没往下传。" : "") : "";
     const paths = st.tokens.map(tk => {
       const p = tk.path, s = tk.src === YOU ? "你" : NAME[tk.src];
       let seg = `第${p[0][0]}礼拜 ${s}→${NAME[p[0][2]]}`;
       for (const [w, a, b] of p.slice(1)) seg += ` →第${w}礼拜 ${NAME[b]}`;
       if (tk.home) seg += tk.src === YOU ? "（回到了你家门口）" : "（到了你家门口）";
-      else if (tk.cold) seg += `（停在${NAME[tk.at]}，` + {"凉": "身边没人有难处，凉了", "欠着": "那家手里压着借你的东西，揣着没往下给", "自顾": "那家自己也正难着，揣着没往下给", "走了": "那家搬走了"}[tk.cold[1]] + "）";
+      else if (tk.cold) seg += `（停在${NAME[tk.at]}，` + {"凉": "身边没人有难处，凉了", "欠着": "那家手里压着借你的东西，揣着没往下给", "自顾": "那家自己也正难着，揣着没往下给", "走了": "那家搬走了", "不收": "孙家不白受人的，转头就还上了"}[tk.cold[1]] + "）";
       else seg += `（开春还在${NAME[tk.at]}手里）`;
       return {seg, path: p, home: !!tk.home, src: tk.src};
     });
